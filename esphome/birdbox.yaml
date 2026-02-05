@@ -7,6 +7,10 @@ esphome:
 substitutions:
   led_count: "5"
 
+web_server:
+  version: 3
+  port: 80
+
 esp32:
   variant: esp32
   framework:
@@ -115,14 +119,14 @@ script:
           call.perform();
 
 light:
-  - platform: neopixelbus
-    id: led_strip
-    name: "LED Strip"
+  - platform: esp32_rmt_led_strip
+    rgb_order: GRB
     pin: GPIO18
-    type: GRB
-    variant: WS2812
     num_leds: ${led_count}
-    restore_mode: ALWAYS_OFF
+    chipset: ws2812
+    name: "LED Strip"
+    id: led_strip
+
 
 switch:
   - platform: gpio
