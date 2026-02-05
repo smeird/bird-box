@@ -13,34 +13,34 @@
       <h1 class="text-3xl font-bold mb-4 text-center">Birdbox Camera</h1>
       <div class="bg-white shadow rounded-lg p-6">
         <h2 class="text-xl font-semibold mb-4">Status</h2>
-        <ul class="divide-y divide-gray-200 text-sm">
-          <li class="flex justify-between py-2">
-            Battery Charge
-            <span id="battery-charge" class="inline-block bg-green-600 text-white px-2 py-1 rounded-full">--</span>
-          </li>
-          <li class="flex justify-between py-2">
-            Battery Voltage
-            <span id="battery-voltage" class="inline-block bg-green-600 text-white px-2 py-1 rounded-full">--</span>
-          </li>
-          <li class="flex justify-between py-2">
-            LED Brightness
-            <span id="led-brightness" class="inline-block bg-gray-600 text-white px-2 py-1 rounded-full">--</span>
-          </li>
-          <li class="flex justify-between py-2">
-            LED R / G / B
-            <span class="inline-block bg-gray-500 text-white px-2 py-1 rounded-full">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-gray-500">Battery Charge</p>
+            <span id="battery-charge" class="mt-2 inline-flex items-center justify-center rounded-full px-3 py-1 text-2xl font-semibold bg-green-50 text-green-700">--</span>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-gray-500">Battery Voltage</p>
+            <span id="battery-voltage" class="mt-2 inline-flex items-center justify-center rounded-full px-3 py-1 text-2xl font-semibold bg-green-50 text-green-700">--</span>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-gray-500">LED Brightness</p>
+            <span id="led-brightness" class="mt-2 inline-flex items-center justify-center rounded-full px-3 py-1 text-2xl font-semibold bg-gray-50 text-gray-700">--</span>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-gray-500">LED R / G / B</p>
+            <span class="mt-2 inline-flex items-center justify-center rounded-full px-3 py-1 text-2xl font-semibold bg-gray-50 text-gray-700">
               <span id="led-r">--</span> / <span id="led-g">--</span> / <span id="led-b">--</span>
             </span>
-          </li>
-          <li class="flex justify-between py-2">
-            Motion Delta (latest)
-            <span id="motion-delta" class="inline-block bg-blue-600 text-white px-2 py-1 rounded-full">--</span>
-          </li>
-          <li class="flex justify-between py-2">
-            Pi Power
-            <span id="pi-power" class="inline-block bg-gray-600 text-white px-2 py-1 rounded-full">--</span>
-          </li>
-        </ul>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-gray-500">Motion Delta (latest)</p>
+            <span id="motion-delta" class="mt-2 inline-flex items-center justify-center rounded-full px-3 py-1 text-2xl font-semibold bg-blue-50 text-blue-700">--</span>
+          </div>
+          <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+            <p class="text-gray-500">Pi Power</p>
+            <span id="pi-power" class="mt-2 inline-flex items-center justify-center rounded-full px-3 py-1 text-2xl font-semibold bg-gray-50 text-gray-700">--</span>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -207,13 +207,20 @@
             const state = normalizeSwitchState(val);
             const pill = document.getElementById("pi-power");
             pill.textContent = state.label;
-            pill.classList.remove("bg-gray-600", "bg-green-600", "bg-red-600");
+            pill.classList.remove(
+              "bg-gray-50",
+              "bg-green-50",
+              "bg-red-50",
+              "text-gray-700",
+              "text-green-700",
+              "text-red-700"
+            );
             if (state.on === true) {
-              pill.classList.add("bg-green-600");
+              pill.classList.add("bg-green-50", "text-green-700");
             } else if (state.on === false) {
-              pill.classList.add("bg-red-600");
+              pill.classList.add("bg-red-50", "text-red-700");
             } else {
-              pill.classList.add("bg-gray-600");
+              pill.classList.add("bg-gray-50", "text-gray-700");
             }
             break;
           }
