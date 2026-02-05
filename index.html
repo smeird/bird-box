@@ -95,6 +95,9 @@
           <button id="latest-view" class="inline-flex items-center gap-2 rounded-full bg-sky-600 text-white px-4 py-2 text-sm font-semibold shadow hover:bg-sky-500 transition">
             View full
           </button>
+          <button id="latest-fullscreen" class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
+            Full screen
+          </button>
           <a id="latest-download" href="#" download class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
             Download
           </a>
@@ -170,6 +173,7 @@
         const latestCaption = document.getElementById("latest-caption");
         const latestUpdated = document.getElementById("latest-updated");
         const latestView = document.getElementById("latest-view");
+        const latestFullscreen = document.getElementById("latest-fullscreen");
         const latestDownload = document.getElementById("latest-download");
         const archiveCount = document.getElementById("archive-count");
 
@@ -179,6 +183,8 @@
           latestUpdated.textContent = "Last updated --";
           latestView.disabled = true;
           latestView.classList.add("opacity-50", "cursor-not-allowed");
+          latestFullscreen.disabled = true;
+          latestFullscreen.classList.add("opacity-50", "cursor-not-allowed");
           latestDownload.href = "#";
           archiveCount.textContent = "0 photos";
           return;
@@ -196,6 +202,9 @@
         latestView.disabled = false;
         latestView.classList.remove("opacity-50", "cursor-not-allowed");
         latestView.onclick = () => openModal(latestSrc, latestText);
+        latestFullscreen.disabled = false;
+        latestFullscreen.classList.remove("opacity-50", "cursor-not-allowed");
+        latestFullscreen.onclick = () => enterFullScreen(latestImage);
         latestDownload.href = latestSrc;
         latestDownload.setAttribute("download", latestHref);
 
@@ -240,6 +249,19 @@
       document.getElementById("modalTimestamp").textContent = caption;
       document.getElementById("snapshotModal").classList.remove("hidden");
       document.getElementById("snapshotModal").classList.add("flex");
+    }
+
+    function enterFullScreen(element) {
+      if (!element) {
+        return;
+      }
+      if (element.requestFullscreen) {
+        element.requestFullscreen();
+      } else if (element.webkitRequestFullscreen) {
+        element.webkitRequestFullscreen();
+      } else if (element.msRequestFullscreen) {
+        element.msRequestFullscreen();
+      }
     }
 
     function closeModal() {
