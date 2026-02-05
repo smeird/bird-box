@@ -36,6 +36,10 @@
             Motion Delta (latest)
             <span id="motion-delta" class="inline-block bg-blue-600 text-white px-2 py-1 rounded-full">--</span>
           </li>
+          <li class="flex justify-between py-2">
+            Pi Power
+            <span id="pi-power" class="inline-block bg-gray-600 text-white px-2 py-1 rounded-full">--</span>
+          </li>
         </ul>
       </div>
     </section>
@@ -152,9 +156,21 @@
           "Birdbox/1/LED/R",
           "Birdbox/1/LED/G",
           "Birdbox/1/LED/B",
-          "Birdbox/1/delta"
+          "Birdbox/1/delta",
+          "Birdbox/1/switch/pi_power/state"
         ]);
       });
+
+      function normalizeSwitchState(value) {
+        const normalized = value.trim().toLowerCase();
+        if (["1", "on", "true", "yes", "up"].includes(normalized)) {
+          return { label: "On", on: true };
+        }
+        if (["0", "off", "false", "no", "down"].includes(normalized)) {
+          return { label: "Off", on: false };
+        }
+        return { label: value, on: null };
+      }
 
       client.on("message", (topic, payload) => {
         const val = payload.toString();
@@ -180,6 +196,20 @@
           case "Birdbox/1/delta":
             document.getElementById("motion-delta").textContent = val;
             break;
+          case "Birdbox/1/switch/pi_power/state": {
+            const state = normalizeSwitchState(val);
+            const pill = document.getElementById("pi-power");
+            pill.textContent = state.label;
+            pill.classList.remove("bg-gray-600", "bg-green-600", "bg-red-600");
+            if (state.on === true) {
+              pill.classList.add("bg-green-600");
+            } else if (state.on === false) {
+              pill.classList.add("bg-red-600");
+            } else {
+              pill.classList.add("bg-gray-600");
+            }
+            break;
+          }
         }
       });
 
