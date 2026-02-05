@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Birdbox Camera</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+
+  <main class="max-w-4xl mx-auto p-6">
+    <section class="mb-8">
+      <h1 class="text-3xl font-bold mb-4 text-center">Birdbox Camera</h1>
+      <div class="bg-white shadow rounded-lg p-6">
+        <h2 class="text-xl font-semibold mb-4">Status</h2>
+        <ul class="divide-y divide-gray-200 text-sm">
+          <li class="flex justify-between py-2">
+            Battery Charge
+            <span id="battery-charge" class="inline-block bg-green-600 text-white px-2 py-1 rounded-full">--</span>
+          </li>
+          <li class="flex justify-between py-2">
+            Battery Voltage
+            <span id="battery-voltage" class="inline-block bg-green-600 text-white px-2 py-1 rounded-full">--</span>
+          </li>
+          <li class="flex justify-between py-2">
+            LED Brightness
+            <span id="led-brightness" class="inline-block bg-gray-600 text-white px-2 py-1 rounded-full">--</span>
+          </li>
+          <li class="flex justify-between py-2">
+            LED R / G / B
+            <span class="inline-block bg-gray-500 text-white px-2 py-1 rounded-full">
+              <span id="led-r">--</span> / <span id="led-g">--</span> / <span id="led-b">--</span>
+            </span>
+          </li>
+          <li class="flex justify-between py-2">
+            Motion Delta (latest)
+            <span id="motion-delta" class="inline-block bg-blue-600 text-white px-2 py-1 rounded-full">--</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <section>
+      <h2 class="text-xl font-semibold mb-4">Snapshots</h2>
+      <div id="snapshot-gallery" class="flex flex-wrap gap-4"></div>
+    </section>
+  </main>
+
+  <!-- Modal -->
+  <div id="snapshotModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-semibold">Snapshot</h3>
+        <button onclick="closeModal()" class="text-gray-600 hover:text-black text-2xl leading-none">&times;</button>
+      </div>
+      <div class="text-center">
+        <img id="modalImage" src="" alt="Snapshot" class="mx-auto max-h-96 w-auto" />
+        <p class="mt-2 text-sm text-gray-600" id="modalTimestamp"></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="text-center text-sm text-gray-500 py-6 mt-12">
+    &copy; 2025 Birdbox Camera
+  </footer>
+
+  <!-- MQTT.js -->
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <!-- Scripts -->
+  <script>
+    function formatTimestamp(stamp) {
+      const match = /(?<y>\d{4})(?<m>\d{2})(?<d>\d{2})_(?<H>\d{2})(?<M>\d{2})(?<S>\d{2})/.exec(stamp);
+      if (!match) return stamp;
+      const { y, m, d, H, M, S } = match.groups;
+      const dateObj = new Date(Number(y), Number(m) - 1, Number(d), Number(H), Number(M), Number(S));
+      return dateObj.toLocaleString();
+    }
+
+    async function loadSnapshots() {
+      try {
+        const res = await fetch("/snapshots/");
+        const text = await res.text();
+        const doc = new DOMParser().parseFromString(text, "text/html");
+        const links = Array.from(doc.querySelectorAll("a"));
+        const gallery = document.getElementById("snapshot-gallery");
+        gallery.innerHTML = "";
+
+        const jpgLinks = links
+          .filter((a) => /\.jpg$/i.test(a.getAttribute("href")))
+          .sort((a, b) => (a.getAttribute("href") < b.getAttribute("href") ? 1 : -1));
+
+        jpgLinks.forEach((link) => {
+          const href = link.getAttribute("href");
+          const stamp = href.replace(/\.jpg$/i, "");
+          const captionText = formatTimestamp(stamp);
+
+          const figure = document.createElement("figure");
+          figure.className = "w-[120px] text-center cursor-pointer";
+          const img = document.createElement("img");
+          img.src = "/snapshots/" + href;
+          img.alt = captionText;
+          img.className = "rounded shadow w-full h-auto";
+          figure.appendChild(img);
+
+          const caption = document.createElement("figcaption");
+          caption.className = "text-xs mt-1 text-gray-600";
+          caption.textContent = captionText;
+          figure.appendChild(caption);
+
+          figure.addEventListener("click", () => openModal(img.src, captionText));
+          gallery.appendChild(figure);
+        });
+      } catch (err) {
+        console.error("Error loading snapshots:", err);
+      }
+    }
+
+    function openModal(src, caption) {
+      document.getElementById("modalImage").src = src;
+      document.getElementById("modalTimestamp").textContent = caption;
+      document.getElementById("snapshotModal").classList.remove("hidden");
+      document.getElementById("snapshotModal").classList.add("flex");
+    }
+
+    function closeModal() {
+      document.getElementById("snapshotModal").classList.remove("flex");
+      document.getElementById("snapshotModal").classList.add("hidden");
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      loadSnapshots();
+      setInterval(loadSnapshots, 10_000);
+    });
+
+    (function initMQTT() {
+      const MQTT_BROKER_URL = "wss://mqtt.smeird.com:8083";
+      const MQTT_OPTIONS = {
+        keepalive: 60,
+        clientId: "birdbox_web_" + Math.random().toString(16).slice(2, 10),
+        reconnectPeriod: 1_000,
+      };
+      const client = mqtt.connect(MQTT_BROKER_URL, MQTT_OPTIONS);
+
+      client.on("connect", () => {
+        console.log("Connected to MQTT broker");
+        client.subscribe([
+          "Birdbox/1/Battery/Percent",
+          "Birdbox/1/Battery/Voltage",
+          "Birdbox/1/LED/Brightness",
+          "Birdbox/1/LED/R",
+          "Birdbox/1/LED/G",
+          "Birdbox/1/LED/B",
+          "Birdbox/1/delta"
+        ]);
+      });
+
+      client.on("message", (topic, payload) => {
+        const val = payload.toString();
+        switch (topic) {
+          case "Birdbox/1/Battery/Percent":
+            document.getElementById("battery-charge").textContent = val.replace(/%?$/, "") + "%";
+            break;
+          case "Birdbox/1/Battery/Voltage":
+            document.getElementById("battery-voltage").textContent = val + " V";
+            break;
+          case "Birdbox/1/LED/Brightness":
+            document.getElementById("led-brightness").textContent = val;
+            break;
+          case "Birdbox/1/LED/R":
+            document.getElementById("led-r").textContent = val;
+            break;
+          case "Birdbox/1/LED/G":
+            document.getElementById("led-g").textContent = val;
+            break;
+          case "Birdbox/1/LED/B":
+            document.getElementById("led-b").textContent = val;
+            break;
+          case "Birdbox/1/delta":
+            document.getElementById("motion-delta").textContent = val;
+            break;
+        }
+      });
+
+      client.on("error", (err) => console.error("MQTT error:", err));
+    })();
+  </script>
+</body>
+</html>
