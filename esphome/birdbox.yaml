@@ -4,6 +4,9 @@ esphome:
   min_version: 2025.11.0
   name_add_mac_suffix: false
 
+substitutions:
+  led_count: "30"
+
 esp32:
   variant: esp32
   framework:
@@ -34,12 +37,92 @@ mqtt:
             } else if (v == "0" || v == "OFF" || v == "off" || v == "false") {
               id(pi_power).turn_off();
             }
+    - topic: Birdbox/1/LED/Brightness
+      then:
+        - lambda: |-
+            int value = atoi(x.c_str());
+            if (value < 0) value = 0;
+            if (value > 255) value = 255;
+            id(led_brightness) = value;
+        - script.execute: apply_led_state
+    - topic: Birdbox/1/LED/R
+      then:
+        - lambda: |-
+            int value = atoi(x.c_str());
+            if (value < 0) value = 0;
+            if (value > 255) value = 255;
+            id(led_r) = value;
+        - script.execute: apply_led_state
+    - topic: Birdbox/1/LED/G
+      then:
+        - lambda: |-
+            int value = atoi(x.c_str());
+            if (value < 0) value = 0;
+            if (value > 255) value = 255;
+            id(led_g) = value;
+        - script.execute: apply_led_state
+    - topic: Birdbox/1/LED/B
+      then:
+        - lambda: |-
+            int value = atoi(x.c_str());
+            if (value < 0) value = 0;
+            if (value > 255) value = 255;
+            id(led_b) = value;
+        - script.execute: apply_led_state
 
 i2c:
   sda: GPIO21
   scl: GPIO22
   scan: true
   id: bus_a
+
+globals:
+  - id: led_brightness
+    type: int
+    restore_value: false
+    initial_value: "0"
+  - id: led_r
+    type: int
+    restore_value: false
+    initial_value: "255"
+  - id: led_g
+    type: int
+    restore_value: false
+    initial_value: "255"
+  - id: led_b
+    type: int
+    restore_value: false
+    initial_value: "255"
+
+script:
+  - id: apply_led_state
+    mode: queued
+    then:
+      - lambda: |-
+          const int brightness = id(led_brightness);
+          if (brightness <= 0) {
+            auto call = id(led_strip).turn_off();
+            call.perform();
+            return;
+          }
+          auto call = id(led_strip).turn_on();
+          call.set_brightness(brightness / 255.0f);
+          call.set_rgb(
+            id(led_r) / 255.0f,
+            id(led_g) / 255.0f,
+            id(led_b) / 255.0f
+          );
+          call.perform();
+
+light:
+  - platform: neopixelbus
+    id: led_strip
+    name: "LED Strip"
+    pin: GPIO18
+    type: GRB
+    variant: WS2812
+    num_leds: ${led_count}
+    restore_mode: ALWAYS_OFF
 
 switch:
   - platform: gpio
