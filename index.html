@@ -57,20 +57,20 @@
 
     <section>
       <h2 class="text-xl font-semibold mb-4">Snapshots</h2>
-      <div id="snapshot-gallery" class="flex flex-wrap gap-4"></div>
+      <div id="snapshot-gallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
     </section>
   </main>
 
   <!-- Modal -->
-  <div id="snapshotModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full">
+  <div id="snapshotModal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Snapshot</h3>
-        <button onclick="closeModal()" class="text-gray-600 hover:text-black text-2xl leading-none">&times;</button>
+        <button onclick="closeModal()" class="text-gray-600 hover:text-black hover:bg-gray-100 rounded-full p-1 text-2xl leading-none">&times;</button>
       </div>
       <div class="text-center">
-        <img id="modalImage" src="" alt="Snapshot" class="mx-auto max-h-96 w-auto" />
-        <p class="mt-2 text-sm text-gray-600" id="modalTimestamp"></p>
+        <img id="modalImage" src="" alt="Snapshot" class="mx-auto max-h-96 lg:max-h-[70vh] w-auto" />
+        <p class="mt-2 text-sm text-gray-500" id="modalTimestamp"></p>
       </div>
     </div>
   </div>
@@ -112,12 +112,19 @@
           const captionText = formatTimestamp(stamp);
 
           const figure = document.createElement("figure");
-          figure.className = "w-[120px] text-center cursor-pointer";
+          figure.className = "group text-center cursor-pointer bg-white rounded-lg shadow hover:shadow-md transition overflow-hidden";
+          const mediaWrapper = document.createElement("div");
+          mediaWrapper.className = "relative";
           const img = document.createElement("img");
           img.src = "/snapshots/" + href;
           img.alt = captionText;
-          img.className = "rounded shadow w-full h-auto";
-          figure.appendChild(img);
+          img.className = "w-full h-auto transition-transform duration-200 hover:scale-[1.02]";
+          mediaWrapper.appendChild(img);
+          const overlay = document.createElement("div");
+          overlay.className = "absolute inset-0 flex items-center justify-center bg-black/30 text-white text-sm font-semibold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition";
+          overlay.textContent = "View";
+          mediaWrapper.appendChild(overlay);
+          figure.appendChild(mediaWrapper);
 
           const caption = document.createElement("figcaption");
           caption.className = "text-xs mt-1 text-gray-600";
@@ -211,13 +218,20 @@
             const state = normalizeSwitchState(val);
             const pill = document.getElementById("pi-power");
             pill.textContent = state.label;
-            pill.classList.remove("bg-gray-600", "bg-green-600", "bg-red-600");
+            pill.classList.remove(
+              "bg-gray-50",
+              "bg-green-50",
+              "bg-red-50",
+              "text-gray-700",
+              "text-green-700",
+              "text-red-700"
+            );
             if (state.on === true) {
-              pill.classList.add("bg-green-600");
+              pill.classList.add("bg-green-50", "text-green-700");
             } else if (state.on === false) {
-              pill.classList.add("bg-red-600");
+              pill.classList.add("bg-red-50", "text-red-700");
             } else {
-              pill.classList.add("bg-gray-600");
+              pill.classList.add("bg-gray-50", "text-gray-700");
             }
             break;
           }
