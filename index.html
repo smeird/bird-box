@@ -30,7 +30,7 @@
           </div>
           <div class="flex items-center gap-2 bg-white/80 border border-emerald-100 text-gray-800 px-3 py-2 rounded-full shadow-sm">
             <span class="text-xs font-semibold uppercase tracking-wide text-gray-500">Pi Power</span>
-            <span id="pi-power" class="inline-block bg-gray-600 text-white px-2 py-1 rounded-full text-xs">--</span>
+            <span id="pi-power" class="inline-block bg-gray-50 text-gray-700 px-2 py-1 rounded-full text-xs">--</span>
           </div>
         </div>
       </div>
@@ -56,7 +56,55 @@
     </section>
 
     <section>
-      <h2 class="text-xl font-semibold mb-4">Snapshots</h2>
+      <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 class="text-xl font-semibold">Snapshots</h2>
+          <p class="text-sm text-gray-500">Latest capture first with quick actions and archive controls.</p>
+        </div>
+        <div class="flex flex-wrap items-center gap-3">
+          <button id="refresh-snapshots" class="inline-flex items-center gap-2 rounded-full bg-gray-900 text-white px-4 py-2 text-sm font-semibold shadow hover:bg-gray-800 transition">
+            Refresh now
+          </button>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-full shadow-sm">
+            <input id="auto-refresh-toggle" type="checkbox" class="accent-gray-900" checked />
+            Auto refresh
+          </label>
+          <label class="inline-flex items-center gap-2 text-sm text-gray-600 bg-white border border-gray-200 px-3 py-2 rounded-full shadow-sm">
+            Density
+            <select id="gallery-density" class="bg-transparent text-sm focus:outline-none">
+              <option value="compact">Compact</option>
+              <option value="cozy" selected>Cozy</option>
+              <option value="roomy">Roomy</option>
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="bg-white shadow rounded-2xl p-6 mb-8">
+        <div class="flex items-center justify-between gap-4 mb-4">
+          <div>
+            <h3 class="text-lg font-semibold">Latest snapshot</h3>
+            <p id="latest-caption" class="text-sm text-gray-500">Waiting for images...</p>
+          </div>
+          <span id="latest-updated" class="text-xs uppercase tracking-wide text-gray-400">Last updated --</span>
+        </div>
+        <div class="rounded-2xl border border-gray-100 bg-gray-50 overflow-hidden">
+          <img id="latest-image" src="" alt="Latest snapshot" class="w-full h-auto object-cover max-h-[420px]" />
+        </div>
+        <div class="flex flex-wrap items-center gap-3 mt-4">
+          <button id="latest-view" class="inline-flex items-center gap-2 rounded-full bg-sky-600 text-white px-4 py-2 text-sm font-semibold shadow hover:bg-sky-500 transition">
+            View full
+          </button>
+          <a id="latest-download" href="#" download class="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm hover:bg-gray-50 transition">
+            Download
+          </a>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="text-lg font-semibold">Older snapshots</h3>
+        <span id="archive-count" class="text-xs uppercase tracking-wide text-gray-400">0 photos</span>
+      </div>
       <div id="snapshot-gallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
     </section>
   </main>
@@ -93,6 +141,18 @@
       return dateObj.toLocaleString();
     }
 
+    function setGalleryDensity(value) {
+      const gallery = document.getElementById("snapshot-gallery");
+      gallery.classList.remove("gap-2", "gap-4", "gap-6");
+      if (value === "compact") {
+        gallery.classList.add("gap-2");
+      } else if (value === "roomy") {
+        gallery.classList.add("gap-6");
+      } else {
+        gallery.classList.add("gap-4");
+      }
+    }
+
     async function loadSnapshots() {
       try {
         const res = await fetch("/snapshots/");
@@ -106,7 +166,43 @@
           .filter((a) => /\.jpg$/i.test(a.getAttribute("href")))
           .sort((a, b) => (a.getAttribute("href") < b.getAttribute("href") ? 1 : -1));
 
-        jpgLinks.forEach((link) => {
+        const latestImage = document.getElementById("latest-image");
+        const latestCaption = document.getElementById("latest-caption");
+        const latestUpdated = document.getElementById("latest-updated");
+        const latestView = document.getElementById("latest-view");
+        const latestDownload = document.getElementById("latest-download");
+        const archiveCount = document.getElementById("archive-count");
+
+        if (jpgLinks.length === 0) {
+          latestImage.src = "";
+          latestCaption.textContent = "Waiting for images...";
+          latestUpdated.textContent = "Last updated --";
+          latestView.disabled = true;
+          latestView.classList.add("opacity-50", "cursor-not-allowed");
+          latestDownload.href = "#";
+          archiveCount.textContent = "0 photos";
+          return;
+        }
+
+        const latestLink = jpgLinks[0];
+        const latestHref = latestLink.getAttribute("href");
+        const latestStamp = latestHref.replace(/\.jpg$/i, "");
+        const latestText = formatTimestamp(latestStamp);
+        const latestSrc = "/snapshots/" + latestHref;
+        latestImage.src = latestSrc;
+        latestImage.alt = latestText;
+        latestCaption.textContent = latestText;
+        latestUpdated.textContent = "Last updated " + new Date().toLocaleTimeString();
+        latestView.disabled = false;
+        latestView.classList.remove("opacity-50", "cursor-not-allowed");
+        latestView.onclick = () => openModal(latestSrc, latestText);
+        latestDownload.href = latestSrc;
+        latestDownload.setAttribute("download", latestHref);
+
+        const olderLinks = jpgLinks.slice(1);
+        archiveCount.textContent = `${olderLinks.length} photos`;
+
+        olderLinks.forEach((link) => {
           const href = link.getAttribute("href");
           const stamp = href.replace(/\.jpg$/i, "");
           const captionText = formatTimestamp(stamp);
@@ -152,8 +248,41 @@
     }
 
     document.addEventListener("DOMContentLoaded", () => {
+      const refreshButton = document.getElementById("refresh-snapshots");
+      const autoRefreshToggle = document.getElementById("auto-refresh-toggle");
+      const densitySelect = document.getElementById("gallery-density");
+      let refreshInterval = null;
+
+      const startAutoRefresh = () => {
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+        }
+        refreshInterval = setInterval(loadSnapshots, 10_000);
+      };
+
+      const stopAutoRefresh = () => {
+        if (refreshInterval) {
+          clearInterval(refreshInterval);
+          refreshInterval = null;
+        }
+      };
+
+      refreshButton.addEventListener("click", () => loadSnapshots());
+      autoRefreshToggle.addEventListener("change", (event) => {
+        if (event.target.checked) {
+          startAutoRefresh();
+        } else {
+          stopAutoRefresh();
+        }
+      });
+
+      densitySelect.addEventListener("change", (event) => {
+        setGalleryDensity(event.target.value);
+      });
+
+      setGalleryDensity(densitySelect.value);
       loadSnapshots();
-      setInterval(loadSnapshots, 10_000);
+      startAutoRefresh();
     });
 
     (function initMQTT() {
