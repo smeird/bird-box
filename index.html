@@ -10,7 +10,13 @@
 
   <main class="max-w-4xl mx-auto p-6">
     <section class="mb-8">
-      <h1 class="text-3xl font-bold mb-4 text-center">Birdbox Camera</h1>
+      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+        <h1 class="text-3xl font-bold text-center sm:text-left">Birdbox Camera</h1>
+        <div class="flex items-center justify-center sm:justify-start gap-2 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-full shadow-sm text-xs font-semibold uppercase tracking-wide">
+          <span class="text-gray-500">MQTT Status</span>
+          <span id="mqtt-status" class="inline-flex items-center px-2 py-0.5 rounded-full bg-gray-100 text-gray-700">Disconnected</span>
+        </div>
+      </div>
       <div class="bg-gradient-to-r from-sky-50 via-white to-emerald-50 shadow-sm rounded-xl p-6 flex flex-col md:flex-row items-center gap-6">
         <div class="flex items-center gap-4">
           <div class="text-4xl">🐦</div>
@@ -37,6 +43,10 @@
       <div class="bg-white shadow rounded-lg p-6 mt-6">
         <h2 class="text-xl font-semibold mb-4">Status</h2>
         <ul class="divide-y divide-gray-200 text-sm">
+          <li class="flex justify-between py-2">
+            Last telemetry update
+            <span id="last-telemetry-update" class="inline-block bg-gray-100 text-gray-700 px-2 py-1 rounded-full">--</span>
+          </li>
           <li class="flex justify-between py-2">
             Battery Voltage
             <span id="battery-voltage" class="inline-block bg-green-600 text-white px-2 py-1 rounded-full">--</span>
@@ -315,9 +325,35 @@
         reconnectPeriod: 1_000,
       };
       const client = mqtt.connect(MQTT_BROKER_URL, MQTT_OPTIONS);
+      const mqttStatusPill = document.getElementById("mqtt-status");
+      const lastTelemetryUpdate = document.getElementById("last-telemetry-update");
+
+      const setMqttStatus = (label, style) => {
+        mqttStatusPill.textContent = label;
+        mqttStatusPill.classList.remove(
+          "bg-gray-100",
+          "bg-green-100",
+          "bg-amber-100",
+          "bg-red-100",
+          "text-gray-700",
+          "text-green-700",
+          "text-amber-700",
+          "text-red-700"
+        );
+        if (style === "connected") {
+          mqttStatusPill.classList.add("bg-green-100", "text-green-700");
+        } else if (style === "reconnecting") {
+          mqttStatusPill.classList.add("bg-amber-100", "text-amber-700");
+        } else if (style === "error") {
+          mqttStatusPill.classList.add("bg-red-100", "text-red-700");
+        } else {
+          mqttStatusPill.classList.add("bg-gray-100", "text-gray-700");
+        }
+      };
 
       client.on("connect", () => {
         console.log("Connected to MQTT broker");
+        setMqttStatus("Connected", "connected");
         client.subscribe([
           "Birdbox/1/Battery/Percent",
           "Birdbox/1/Battery/Voltage",
@@ -328,6 +364,16 @@
           "Birdbox/1/delta",
           "Birdbox/1/switch/pi_power/state"
         ]);
+      });
+
+      client.on("reconnect", () => {
+        console.log("Reconnecting to MQTT broker");
+        setMqttStatus("Reconnecting", "reconnecting");
+      });
+
+      client.on("offline", () => {
+        console.log("MQTT client offline");
+        setMqttStatus("Disconnected", "offline");
       });
 
       function normalizeSwitchState(value) {
@@ -343,6 +389,7 @@
 
       client.on("message", (topic, payload) => {
         const val = payload.toString();
+        lastTelemetryUpdate.textContent = new Date().toLocaleTimeString();
         switch (topic) {
           case "Birdbox/1/Battery/Percent":
             document.getElementById("battery-charge").textContent = val.replace(/%?$/, "") + "%";
@@ -389,7 +436,10 @@
         }
       });
 
-      client.on("error", (err) => console.error("MQTT error:", err));
+      client.on("error", (err) => {
+        console.error("MQTT error:", err);
+        setMqttStatus("Error", "error");
+      });
     })();
   </script>
 </body>
