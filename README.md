@@ -6,9 +6,9 @@ Bird Box is a lightweight, single-page web dashboard for a birdhouse camera. It 
 
 ```mermaid
 flowchart TD
-    Viewer[Viewer Browser] -->|Loads|Dashboard[Single-page Dashboard<br/>index.html + Tailwind CDN]
+    Viewer[Viewer Browser] -->|Loads| Dashboard[Single-page Dashboard<br/>index.html + Tailwind CDN]
     Dashboard -->|Fetches snapshots| Snapshots[/snapshots/ directory]
-    Dashboard -->|Subscribes via MQTT over WebSockets| Broker[(MQTT Broker)]
+    Dashboard -->|Subscribes via MQTT over WebSockets| Broker[MQTT Broker]
     ESP32[ESP32 Controller<br/>esphome/birdbox.yaml] -->|Telemetry + power state| Broker
     Broker -->|Battery / LED / motion / power topics| Dashboard
     ESP32 -->|Power control| Pi[Raspberry Pi Camera]
