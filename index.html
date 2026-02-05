@@ -46,7 +46,7 @@
 
     <section>
       <h2 class="text-xl font-semibold mb-4">Snapshots</h2>
-      <div id="snapshot-gallery" class="flex flex-wrap gap-4"></div>
+      <div id="snapshot-gallery" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4"></div>
     </section>
   </main>
 
@@ -101,12 +101,19 @@
           const captionText = formatTimestamp(stamp);
 
           const figure = document.createElement("figure");
-          figure.className = "w-[120px] text-center cursor-pointer";
+          figure.className = "group text-center cursor-pointer bg-white rounded-lg shadow hover:shadow-md transition overflow-hidden";
+          const mediaWrapper = document.createElement("div");
+          mediaWrapper.className = "relative";
           const img = document.createElement("img");
           img.src = "/snapshots/" + href;
           img.alt = captionText;
-          img.className = "rounded shadow w-full h-auto";
-          figure.appendChild(img);
+          img.className = "w-full h-auto transition-transform duration-200 hover:scale-[1.02]";
+          mediaWrapper.appendChild(img);
+          const overlay = document.createElement("div");
+          overlay.className = "absolute inset-0 flex items-center justify-center bg-black/30 text-white text-sm font-semibold uppercase tracking-wide opacity-0 group-hover:opacity-100 transition";
+          overlay.textContent = "View";
+          mediaWrapper.appendChild(overlay);
+          figure.appendChild(mediaWrapper);
 
           const caption = document.createElement("figcaption");
           caption.className = "text-xs mt-1 text-gray-600";
