@@ -1,0 +1,134 @@
+esphome:
+  name: esphome-web-e95f34
+  friendly_name: Birdbox
+  min_version: 2025.11.0
+  name_add_mac_suffix: false
+
+esp32:
+  variant: esp32
+  framework:
+    type: esp-idf
+
+logger:
+api:
+ota:
+  - platform: esphome
+
+wifi:
+  ssid: !secret wifi_ssid
+  password: !secret wifi_password
+
+mqtt:
+  broker: !secret birdbox_mqtt_host
+  username: !secret birdbox_mqtt_user
+  password: !secret birdbox_mqtt_pass
+  discovery: false
+  topic_prefix: Birdbox/1
+  on_message:
+    - topic: Birdbox/1/switch/pi/set
+      then:
+        - lambda: |-
+            const std::string v = x;
+            if (v == "1" || v == "ON" || v == "on" || v == "true") {
+              id(pi_power).turn_on();
+            } else if (v == "0" || v == "OFF" || v == "off" || v == "false") {
+              id(pi_power).turn_off();
+            }
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+  id: bus_a
+
+switch:
+  - platform: gpio
+    id: pi_power
+    name: "Pi Power"
+    pin: GPIO16
+    restore_mode: ALWAYS_OFF
+    on_turn_on:
+      then:
+        - mqtt.publish:
+            topic: Birdbox/1/switch/pi
+            payload: "1"
+    on_turn_off:
+      then:
+        - mqtt.publish:
+            topic: Birdbox/1/switch/pi
+            payload: "0"
+
+  - platform: template
+    id: battery_control_enabled
+    name: "Battery control enabled"
+    restore_mode: RESTORE_DEFAULT_ON
+    optimistic: true
+
+number:
+  - platform: template
+    id: pi_off_pct
+    name: "Pi off battery %"
+    min_value: 0
+    max_value: 100
+    step: 1
+    mode: slider
+    restore_value: true
+    initial_value: 20
+    optimistic: true
+
+  - platform: template
+    id: pi_on_pct
+    name: "Pi on battery %"
+    min_value: 0
+    max_value: 100
+    step: 1
+    mode: slider
+    restore_value: true
+    initial_value: 40
+    optimistic: true
+
+sensor:
+  - platform: lc709203f
+    i2c_id: bus_a
+    address: 0x0B
+    size: 3000
+    voltage: 3.7
+
+    battery_voltage:
+      name: "Battery Voltage"
+      id: batt_v
+      on_value:
+        then:
+          - mqtt.publish:
+              topic: Birdbox/1/Battery/Voltage
+              payload: !lambda |-
+                char buf[16];
+                snprintf(buf, sizeof(buf), "%.3f", x);
+                return std::string(buf);
+
+    battery_level:
+      name: "Battery %"
+      id: batt_pct
+      on_value:
+        then:
+          - mqtt.publish:
+              topic: Birdbox/1/Battery/Percent
+              payload: !lambda |-
+                char buf[16];
+                snprintf(buf, sizeof(buf), "%.0f", x);
+                return std::string(buf);
+
+          - if:
+              condition:
+                switch.is_on: battery_control_enabled
+              then:
+                - lambda: |-
+                    const float pct = id(batt_pct).state;
+                    const float off_th = id(pi_off_pct).state;
+                    const float on_th  = id(pi_on_pct).state;
+                    if (on_th <= off_th) return;
+                    if (id(pi_power).state && pct <= off_th) {
+                      id(pi_power).turn_off();
+                    } else if (!id(pi_power).state && pct >= on_th) {
+                      id(pi_power).turn_on();
+                    }
