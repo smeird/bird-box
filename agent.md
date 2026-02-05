@@ -9,3 +9,7 @@ The ESP32 firmware configuration for the bird box power controller is stored at 
 - Enforcing automatic on/off thresholds using Home Assistant template sliders.
 
 When updating the ESPHome configuration, keep MQTT topic names and the LC709203F fuel gauge settings aligned with the hardware setup.
+
+## Documentation maintenance
+
+If the platform structure or data flow changes, update the platform diagram in `README.md` to match.
