@@ -51,15 +51,15 @@
   </main>
 
   <!-- Modal -->
-  <div id="snapshotModal" class="fixed inset-0 bg-black bg-opacity-70 hidden items-center justify-center z-50">
-    <div class="bg-white rounded-lg shadow-lg p-4 max-w-2xl w-full">
+  <div id="snapshotModal" class="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm hidden items-center justify-center z-50">
+    <div class="bg-white rounded-2xl shadow-xl p-6 max-w-2xl w-full">
       <div class="flex justify-between items-center mb-4">
         <h3 class="text-lg font-semibold">Snapshot</h3>
-        <button onclick="closeModal()" class="text-gray-600 hover:text-black text-2xl leading-none">&times;</button>
+        <button onclick="closeModal()" class="text-gray-600 hover:text-black hover:bg-gray-100 rounded-full p-1 text-2xl leading-none">&times;</button>
       </div>
       <div class="text-center">
-        <img id="modalImage" src="" alt="Snapshot" class="mx-auto max-h-96 w-auto" />
-        <p class="mt-2 text-sm text-gray-600" id="modalTimestamp"></p>
+        <img id="modalImage" src="" alt="Snapshot" class="mx-auto max-h-96 lg:max-h-[70vh] w-auto" />
+        <p class="mt-2 text-sm text-gray-500" id="modalTimestamp"></p>
       </div>
     </div>
   </div>
