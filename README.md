@@ -12,6 +12,7 @@ flowchart TD
     ESP32[ESP32 Controller<br/>esphome/birdbox.yaml] -->|Telemetry + power state| Broker
     Broker -->|Battery / LED / motion / power topics| Dashboard
     ESP32 -->|Power control| Pi[Raspberry Pi Camera]
+    Pi -->|Publishes delta + snapshots| Broker
     Pi -->|Captures JPGs| Snapshots
 ```
 
@@ -22,3 +23,15 @@ The ESP32 configuration that manages battery monitoring and Raspberry Pi power c
 ## Snapshots directory
 
 Place camera images in `snapshots/` at the repository root so they are served at `/snapshots/`. The gallery expects JPG filenames in the format `YYYYMMDD_HHMMSS.jpg` so it can format timestamps in the UI. The directory is tracked in Git with a `.gitkeep` placeholder so it exists when you deploy.
+
+## Raspberry Pi camera script
+
+The Raspberry Pi publishes motion deltas and high-resolution snapshots using `pi/frame_differencing_trigger.py`. It runs Picamera2 in full-auto mode, performs frame differencing, turns on the LED strip over MQTT when motion crosses the threshold, and publishes JPEG bytes to the snapshot topic.
+
+Key environment variables:
+
+- `MQTT_BROKER_HOST`, `MQTT_BROKER_PORT`, `MQTT_USERNAME`, `MQTT_PASSWORD`
+- `MQTT_DELTA_TOPIC`, `MQTT_SNAP_TOPIC`
+- `LED_BRIGHTNESS_TOPIC`, `LED_R_TOPIC`, `LED_G_TOPIC`, `LED_B_TOPIC`
+- `LED_BRIGHTNESS_VALUE`, `LED_R_VALUE`, `LED_G_VALUE`, `LED_B_VALUE`, `LED_WARMUP_SEC`
+- `MOTION_THRESHOLD`
