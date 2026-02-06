@@ -172,11 +172,42 @@
       }
     }
 
+    function normalizeSnapshotHref(href) {
+      if (!href) {
+        return "";
+      }
+      const [withoutQuery] = href.split(/[?#]/);
+      return decodeURIComponent(withoutQuery).replace(/^\/+/, "");
+    }
+
+    function encodeSnapshotPath(fileName) {
+      return fileName
+        .split("/")
+        .filter(Boolean)
+        .map((segment) => encodeURIComponent(segment))
+        .join("/");
+    }
+
+    function buildSnapshotSrc(fileName, cacheBuster) {
+      return `/snapshots/${encodeSnapshotPath(fileName)}?_=${cacheBuster}`;
+    }
+
     async function loadSnapshots() {
       try {
         const cacheBuster = Date.now();
         const res = await fetch(`/snapshots/?_=${cacheBuster}`, {
           cache: "no-store",
+          headers: {
+            "Cache-Control": "no-cache, no-store, max-age=0, must-revalidate",
+            Pragma: "no-cache",
+            Expires: "0",
+          },
+        });
+
+        if (!res.ok) {
+          throw new Error(`Snapshot index request failed with status ${res.status}`);
+        }
+
         });
         const text = await res.text();
         const doc = new DOMParser().parseFromString(text, "text/html");
@@ -185,8 +216,9 @@
         gallery.innerHTML = "";
 
         const jpgLinks = links
-          .filter((a) => /\.jpg$/i.test(a.getAttribute("href")))
-          .sort((a, b) => (a.getAttribute("href") < b.getAttribute("href") ? 1 : -1));
+          .map((a) => normalizeSnapshotHref(a.getAttribute("href")))
+          .filter((href) => /\.jpe?g$/i.test(href))
+          .sort((a, b) => (a < b ? 1 : -1));
 
         const latestImage = document.getElementById("latest-image");
         const latestCaption = document.getElementById("latest-caption");
@@ -209,11 +241,11 @@
           return;
         }
 
-        const latestLink = jpgLinks[0];
-        const latestHref = latestLink.getAttribute("href");
-        const latestStamp = latestHref.replace(/\.jpg$/i, "");
+        const latestHref = jpgLinks[0];
+        const latestStamp = latestHref.replace(/\.jpe?g$/i, "");
         const latestText = formatTimestamp(latestStamp);
-        const latestSrc = `/snapshots/${latestHref}?_=${cacheBuster}`;
+        const latestSrc = buildSnapshotSrc(latestHref, cacheBuster);
+        latestImage.src = "";
         latestImage.src = latestSrc;
         latestImage.alt = latestText;
         latestCaption.textContent = latestText;
@@ -224,15 +256,14 @@
         latestFullscreen.disabled = false;
         latestFullscreen.classList.remove("opacity-50", "cursor-not-allowed");
         latestFullscreen.onclick = () => enterFullScreen(latestImage);
-        latestDownload.href = `/snapshots/${latestHref}`;
-        latestDownload.setAttribute("download", latestHref);
+        latestDownload.href = `/snapshots/${encodeSnapshotPath(latestHref)}`;
+        latestDownload.setAttribute("download", latestHref.split("/").pop());
 
         const olderLinks = jpgLinks.slice(1);
         archiveCount.textContent = `${olderLinks.length} photos`;
 
-        olderLinks.forEach((link) => {
-          const href = link.getAttribute("href");
-          const stamp = href.replace(/\.jpg$/i, "");
+        olderLinks.forEach((href) => {
+          const stamp = href.replace(/\.jpe?g$/i, "");
           const captionText = formatTimestamp(stamp);
 
           const figure = document.createElement("figure");
@@ -240,7 +271,7 @@
           const mediaWrapper = document.createElement("div");
           mediaWrapper.className = "relative";
           const img = document.createElement("img");
-          img.src = `/snapshots/${href}?_=${cacheBuster}`;
+          img.src = buildSnapshotSrc(href, cacheBuster);
           img.alt = captionText;
           img.className = "w-full h-auto transition-transform duration-200 hover:scale-[1.02]";
           mediaWrapper.appendChild(img);
