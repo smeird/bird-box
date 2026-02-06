@@ -208,7 +208,6 @@
           throw new Error(`Snapshot index request failed with status ${res.status}`);
         }
 
-        });
         const text = await res.text();
         const doc = new DOMParser().parseFromString(text, "text/html");
         const links = Array.from(doc.querySelectorAll("a"));
