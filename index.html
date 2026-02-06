@@ -147,11 +147,17 @@
   <!-- Scripts -->
   <script>
     function formatTimestamp(stamp) {
-      const match = /(?<y>\d{4})(?<m>\d{2})(?<d>\d{2})_(?<H>\d{2})(?<M>\d{2})(?<S>\d{2})/.exec(stamp);
-      if (!match) return stamp;
+      const normalizedStamp = String(stamp).split("/").pop().replace(/\.jpg$/i, "");
+      const match = /^(?<y>\d{4})(?<m>\d{2})(?<d>\d{2})[_-](?<H>\d{2})(?<M>\d{2})(?<S>\d{2})$/.exec(normalizedStamp);
+      if (!match) return normalizedStamp;
+
       const { y, m, d, H, M, S } = match.groups;
       const dateObj = new Date(Number(y), Number(m) - 1, Number(d), Number(H), Number(M), Number(S));
-      return dateObj.toLocaleString();
+
+      return new Intl.DateTimeFormat(undefined, {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(dateObj);
     }
 
     function setGalleryDensity(value) {
